@@ -131,11 +131,11 @@ module.exports = function (schema, options) {
             schema.pre('aggregate', function() {
                 var firsMatchStr = JSON.stringify(this.pipeline()[0]);
 
-                if ( firsMatchStr !== '{"$match":{"deleted":{"$ne":false}}}' ) {
+                if ( firsMatchStr !== '{"$match":{"' + deletedKey + '":{"$ne":false}}}' ) {
                     if (firsMatchStr === '{"$match":{"showAllDocuments":"true"}}') {
                         this.pipeline().shift();
                     } else {
-                        this.pipeline().unshift({ $match: { deleted: { '$ne': true } } });
+                        this.pipeline().unshift({ $match: createSchemaObject(deletedKey, { '$ne': true }, {}) });
                     }
                 }
             });
@@ -153,16 +153,16 @@ module.exports = function (schema, options) {
 
                 schema.statics[method] = function () {
                     if (use$neOperator) {
-                        return Model[modelMethodName].apply(this, arguments).where('deleted').ne(true);
+                        return Model[modelMethodName].apply(this, arguments).where(deletedKey).ne(true);
                     } else {
-                        return Model[modelMethodName].apply(this, arguments).where({deleted: false});
+                        return Model[modelMethodName].apply(this, arguments).where(createSchemaObject(deletedKey, false, {}));
                     }
                 };
                 schema.statics[method + 'Deleted'] = function () {
                     if (use$neOperator) {
-                        return Model[modelMethodName].apply(this, arguments).where('deleted').ne(false);
+                        return Model[modelMethodName].apply(this, arguments).where(deletedKey).ne(false);
                     } else {
-                        return Model[modelMethodName].apply(this, arguments).where({deleted: true});
+                        return Model[modelMethodName].apply(this, arguments).where(createSchemaObject(deletedKey, true, {}));
                     }
                 };
                 schema.statics[method + 'WithDeleted'] = function () {
@@ -173,7 +173,7 @@ module.exports = function (schema, options) {
                     schema.statics[method + 'Deleted'] = function () {
                         var args = [];
                         Array.prototype.push.apply(args, arguments);
-                        var match = { $match : { deleted : {'$ne': false } } };
+                        var match = { $match : createSchemaObject(deletedKey, { '$ne': false }, {}) };
                         arguments.length ? args[0].unshift(match) : args.push([match]);
                         return Model[method].apply(this, args);
                     };
@@ -190,9 +190,9 @@ module.exports = function (schema, options) {
                         var args = parseUpdateArguments.apply(undefined, arguments);
 
                         if (use$neOperator) {
-                            args[0].deleted = {'$ne': true};
+                            args[0][deletedKey] = {'$ne': true};
                         } else {
-                            args[0].deleted = false;
+                            args[0][deletedKey] = false;
                         }
 
                         return Model[method].apply(this, args);
@@ -202,9 +202,9 @@ module.exports = function (schema, options) {
                         var args = parseUpdateArguments.apply(undefined, arguments);
 
                         if (use$neOperator) {
-                            args[0].deleted = {'$ne': false};
+                            args[0][deletedKey] = {'$ne': false};
                         } else {
-                            args[0].deleted = true;
+                            args[0][deletedKey] = true;
                         }
 
                         return Model[method].apply(this, args);
